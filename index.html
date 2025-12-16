@@ -282,8 +282,7 @@ select {
         <div style="font-size:13px; font-weight:800;">Jump to Week/Day</div>
         <div class="sub">Pick where you are. If you select a rest day, the app will skip to the next workout day.</div>
       </div>
-      <button class="miniBtn" id="pickerClose">Close</button>
-    </div>
+</div>
     <div class="hr"></div>
     <div class="grid2">
       <div>
@@ -1103,7 +1102,8 @@ function openPicker() {
   pickWeek.onchange = refreshDays;
 }
 function closePicker() { $('#modal-picker').style.display = 'none'; }
-$('#pickerClose').addEventListener('click', closePicker);
+const _pickerClose = $('#pickerClose');
+if(_pickerClose) _pickerClose.addEventListener('click', closePicker);
 $('#pickerCancel').addEventListener('click', closePicker);
 $('#pickerApply').addEventListener('click', async () => {
   const week = Number($('#pickWeek').value);
