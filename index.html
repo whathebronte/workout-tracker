@@ -1,4 +1,4 @@
-<!-- build:v2.1-20251216043101Z -->
+<!-- build:v2.2-20251216045231Z -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -39,6 +39,8 @@ a { color: inherit; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 0 0 6px rgba(255,255,255,.06); }
 .brand h1 { margin: 0; font-size: 14px; letter-spacing: .2px; }
 .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted2); }
+.profileRow { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; margin-top: 3px; }
+
 .tabs { display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end; }
 .tab {
   border: 1px solid var(--line); background: transparent; color: var(--muted);
@@ -183,7 +185,7 @@ select {
       <div class="dot"></div>
       <div>
         <h1>Workout Tracker</h1>
-        <p id="statusLine">Signing in…</p>
+        <div id="statusLine" class="profileRow"><span class="sub">Signing in…</span></div>
       </div>
     </div>
 
@@ -285,6 +287,15 @@ const screens = {
 };
 const tabs = Array.from(document.querySelectorAll('.tab'));
 const statusLine = $('#statusLine');
+
+async function copyProfileLink() {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    showToast('Link copied.');
+  } catch {
+    showToast('Copy failed. Tap and hold the address bar to copy.');
+  }
+}
 
 function showToast(msg, ms=2200) {
   const t = $('#toast');
@@ -497,6 +508,8 @@ async function renderHome() {
   const draft = loadDraft();
   const isResumable = !!draft && plan && draft.week === ptr.week && draft.day === ptr.day;
 
+  const canStart = plan && !plan.isRest;
+
   const upNext = ptr ? findNextScheduled(ptr.week, ptr.day) : null;
   const upNextHtml = upNext ? `
     <div class="exerciseCard">
@@ -504,14 +517,15 @@ async function renderHome() {
         <div>
           <div class="label">Up next (schedule)</div>
           <div class="kv">Week ${upNext.week} • Day ${upNext.day} • ${upNext.workout}</div>
-          <div class="sub">${upNext.isRest ? 'Rest day' : 'Workout day'}</div>
         </div>
-        <span class="pill ${upNext.isRest ? 'danger' : 'good'}">${upNext.isRest ? 'Rest' : 'Next'}</span>
       </div>
     </div>
-  ` : `<div class="sub">No next day found (end of program).</div>`;
-
-  const canStart = plan && !plan.isRest;
+  ` : `
+    <div class="exerciseCard">
+      <div class="label">Up next (schedule)</div>
+      <div class="sub">No next day found (end of program).</div>
+    </div>
+  `;
 
   screens.home.innerHTML = `
     <div>
@@ -522,27 +536,15 @@ async function renderHome() {
     <div class="exerciseCard">
       <div class="row" style="align-items:center">
         <div>
-          <div class="label">Current</div>
+          <div class="label">Hypertrophy (Intermediate-Advanced)</div>
           <div class="kv">${plan ? `${plan.block} • Week ${plan.week} • Day ${plan.day}` : '—'}</div>
           <div class="sub">${plan ? plan.workout : ''}</div>
         </div>
         <button class="miniBtn" id="btnPick">Change</button>
       </div>
 
-      <div class="hr"></div>
-
-      <div class="row" style="align-items:center">
-        <div class="miniBtns" style="margin-top:0">
-          <span class="pill"><strong>Program</strong> ${PROGRAM.name}</span>
-          <span class="pill"><strong>Profile</strong> ${state.profileId}</span>
-        </div>
-        <div class="miniBtns" style="margin-top:0">
-          <button class="miniBtn" id="btnCopyLink">Copy link</button>
-          <span class="pill ${canStart ? 'good' : 'warn'}">${canStart ? 'Ready' : 'Rest day'}</span>
-        </div>
-      </div>
-
       <div style="height:12px"></div>
+
       ${
         canStart
           ? `<button class="btn" id="btnStart">${isResumable ? 'Resume workout' : 'Start workout'}</button>`
@@ -551,18 +553,16 @@ async function renderHome() {
     </div>
 
     ${upNextHtml}
-
-    <div class="sectionTitle">Your saved link</div>
-    <div class="sub">This app uses a URL-based profile id (<strong>?id=…</strong>). Save the link to resume on any device. Anyone with the link can access this profile.</div>
   `;
 
   $('#btnPick')?.addEventListener('click', openPicker);
-  $('#btnStart')?.addEventListener('click', async () => { await startOrResumeWorkout(); setRoute('workout'); await render(); });
-  $('#btnCopyLink')?.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(window.location.href); showToast('Link copied.'); }
-    catch { showToast('Copy failed. Tap and hold URL in the address bar to copy.'); }
+  $('#btnStart')?.addEventListener('click', async () => {
+    await startOrResumeWorkout();
+    setRoute('workout');
+    await render();
   });
 }
+
 
 async function renderWorkout() {
   const plan = state.currentPlan;
@@ -1219,7 +1219,7 @@ async function finishWorkout() {
   await render();
 }
 
-const BUILD_ID = 'v2.1-20251216043101Z';
+const BUILD_ID = 'v2.2-20251216045231Z';
 
 /* Auth bootstrap */
 async function bootstrap() {
@@ -1230,6 +1230,11 @@ async function bootstrap() {
     setUrlId(pid);
   }
   state.profileId = pid;
+
+  // Header shows only Profile ID + Copy
+  statusLine.innerHTML = `<span class="pill"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>` + `<button class="miniBtn" id="btnCopyHeader">Copy</button>`;
+  document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileLink);
+
 
   try {
     await signInAnonymously(auth);
@@ -1246,7 +1251,10 @@ async function bootstrap() {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     state.authUid = user.uid;
-    statusLine.textContent = `Signed in (anonymous) • Build ${BUILD_ID} • Profile: ${state.profileId.slice(0,8)}… • Auth UID: ${user.uid.slice(0,6)}…`;
+    statusLine.innerHTML = `<span class="pill"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>`
+    + `<button class="miniBtn" id="btnCopyHeader">Copy</button>`;
+    document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileLink);
+
 
     state.current = await loadPointer();
     state.currentPlan = getDayPlan(state.current.week, state.current.day);
