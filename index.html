@@ -125,6 +125,14 @@ a { color: inherit; }
 .iconBtn:active { transform: translateY(1px); }
 
 .lastSetRow { margin-top: 10px; }
+.lastSetPill{
+  display:block;
+  width:100%;
+  max-width:100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .setTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .setTable th {
   text-align: left; font-size: 11px; color: var(--muted2);
@@ -295,8 +303,7 @@ select {
         <div style="font-size:13px; font-weight:800;" id="subTitle">Substitute</div>
         <div class="sub">Pick what you actually did. Progress will track the performed exercise.</div>
       </div>
-      <button class="miniBtn" id="subClose">Close</button>
-    </div>
+          </div>
     <div class="hr"></div>
     <div class="stack" id="subBody"></div>
     <div class="modalActions">
@@ -809,7 +816,7 @@ async function renderWorkout() {
               <p class="exerciseTitle" data-open-ex="${encodeURIComponent(performed)}">${performed}</p>
               <div class="meta">Warm-up: ${ex.warmupSets || '—'} sets • Rest: ${ex.rest || '—'}</div>
               <div class="lastSetRow">
-                <span class="pill wrap">Last set: ${ex.technique || '—'}</span>
+                <span class="pill lastSetPill">Last set: ${ex.technique || '—'}</span>
               </div>
             </div>
             <button class="iconBtn" data-action="sub" data-ex="${i}" aria-label="Swap / substitute">
@@ -1162,14 +1169,12 @@ function openSubModal(exIndex) {
     <div>
       <div class="label">Or type a custom substitution (optional)</div>
       <input id="subCustom" placeholder="e.g., Machine Chest Press" style="width:100%" />
-      <div class="sub">If filled, this overrides the dropdown selection.</div>
-    </div>
+          </div>
   `;
   $('#subSelect').value = encodeURIComponent(ex.performedExercise || ex.plannedExercise);
   $('#subCustom').value = '';
 }
 function closeSubModal() { $('#modal-sub').style.display = 'none'; subCtx = null; }
-$('#subClose').addEventListener('click', closeSubModal);
 $('#subCancel').addEventListener('click', closeSubModal);
 $('#subApply').addEventListener('click', async () => {
   if (!subCtx) return;
