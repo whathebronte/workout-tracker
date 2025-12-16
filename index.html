@@ -1191,7 +1191,7 @@ $('#subApply').addEventListener('click', async () => {
   persistSessionDraft();
   closeSubModal();
   showToast('Substitution saved.');
-  updateExerciseInputs(exIndex, targetSet);
+  await renderWorkout();
 });
 
 /* Rest timers */
@@ -1280,7 +1280,7 @@ async function doCopyLastWorkout(exIndex) {
   }
   persistSessionDraft();
   showToast('Copied last workout.');
-  updateExerciseInputs(exIndex, targetSet);
+  updateExerciseInputs(exIndex);
 }
 
 let _cloudDraftTimer = null;
@@ -1555,8 +1555,14 @@ document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileL
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     state.authUid = user.uid;
-    statusLine.innerHTML = `<span class="pill"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>`
-    + `<button class="miniBtn" id="btnCopyHeader">Copy</button>`;
+    statusLine.innerHTML =
+      `<span class="pill ellipsis"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>` +
+      `<button class="miniBtn iconOnly" id="btnCopyHeader" aria-label="Copy profile link">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>`;
     document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileLink);
 
 
