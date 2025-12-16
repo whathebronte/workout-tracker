@@ -40,7 +40,7 @@ a { color: inherit; }
   padding: 14px 14px; border: 1px solid var(--line); border-radius: 18px;
   background: rgba(18,19,26,.75); backdrop-filter: blur(10px);
 }
-.brand { display:flex; gap: 10px; align-items:center; min-width: 240px; }
+.brand { display:flex; flex-direction: column; gap: 4px; align-items:flex-start; min-width: 240px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 0 0 6px rgba(255,255,255,.06); }
 .brand h1 { margin: 0; font-size: 14px; letter-spacing: .2px; }
 .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted2); }
@@ -327,8 +327,7 @@ select {
       `<div style="font-weight:800;margin-bottom:6px">Startup issue</div>` +
       `<div style="opacity:.85;margin-bottom:8px">${msg}</div>` +
       (src? `<div style="opacity:.6;word-break:break-all;margin-bottom:10px">${src}</div>` : '') +
-      `<div style="opacity:.75;margin-bottom:10px">If you opened this inside Telegram/Instagram in-app browser, tap the share icon → <b>Open in Safari</b>.</div>` +
-      `<button id="btnRetryBoot" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+            `<button id="btnRetryBoot" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
     );
     setTimeout(()=>{
       const b=document.getElementById('btnRetryBoot');
@@ -341,8 +340,7 @@ select {
     show(
       `<div style="font-weight:800;margin-bottom:6px">Startup issue</div>` +
       `<div style="opacity:.85;margin-bottom:10px">${msg}</div>` +
-      `<div style="opacity:.75;margin-bottom:10px">Try opening in Safari (not an in-app browser). If your network blocks gstatic.com, Firebase can’t load.</div>` +
-      `<button id="btnRetryBoot2" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+            `<button id="btnRetryBoot2" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
     );
     setTimeout(()=>{
       const b=document.getElementById('btnRetryBoot2');
@@ -359,8 +357,7 @@ select {
       show(
         `<div style="font-weight:800;margin-bottom:6px">Still signing in…</div>` +
         `<div style="opacity:.85;margin-bottom:10px">Firebase Auth hasn’t finished. This is often caused by in-app browsers, blocked storage, or blocked access to <b>gstatic.com</b>.</div>` +
-        `<div style="opacity:.75;margin-bottom:10px">Fix: open in Safari (share icon → Open in Safari), or try Private mode once.</div>` +
-        `<button id="btnRetryBoot3" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+                `<button id="btnRetryBoot3" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
       );
       setTimeout(()=>{
         const b=document.getElementById('btnRetryBoot3');
@@ -1063,7 +1060,7 @@ async function render() {
   if (state.current) state.currentPlan = getDayPlan(state.current.week, state.current.day);
 
   if (route === 'home') await renderHome();
-  if (route === 'workout') updateExerciseInputs(exIndex, targetSet);
+  if (route === 'workout') await renderWorkout();
   if (route === 'exercise') await renderExercise();
   if (route === 'program') await renderProgram();
 }
