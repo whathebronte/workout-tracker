@@ -1,4 +1,4 @@
-<!-- build:v2.3d-20251216053617Z -->
+<!-- build:v2.4-20251216055706Z -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -20,7 +20,8 @@
 }
 * { box-sizing: border-box; }
 body {
-  margin: 0;
+  min-height: 100vh;
+margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
   color: var(--text);
   background:
@@ -29,17 +30,25 @@ body {
     var(--bg);
 }
 a { color: inherit; }
-.wrap { max-width: 980px; margin: 18px auto 40px; padding: 0 14px; }
+.wrap { max-width: 980px; margin: 18px auto 40px; padding: 0 14px; 
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 .topbar {
-  display:flex; gap: 12px; align-items:center; justify-content:space-between;
+  display:flex; gap: 12px; align-items:flex-start; justify-content:space-between;
   padding: 14px 14px; border: 1px solid var(--line); border-radius: 18px;
   background: rgba(18,19,26,.75); backdrop-filter: blur(10px);
 }
-.brand { display:flex; gap: 10px; align-items:center; min-width: 240px; }
+.brand { display:flex; flex-direction: column; gap: 4px; align-items:flex-start; min-width: 240px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 0 0 6px rgba(255,255,255,.06); }
 .brand h1 { margin: 0; font-size: 14px; letter-spacing: .2px; }
 .brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted2); }
-.profileRow { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; margin-top: 3px; }
+.profileRow { display:flex; gap: 8px; align-items:center; flex-wrap: nowrap; margin-top: 3px; min-width: 0; }
+.profileRow .pill{ flex: 1 1 auto; min-width: 0; }
+.pill.ellipsis{ overflow:hidden; text-overflow: ellipsis; }
+.miniBtn.iconOnly{ display:inline-flex; align-items:center; justify-content:center; width:42px; padding:7px 9px; border-radius:999px; }
+
 
 .tabs { display:flex; gap: 8px; flex-wrap: wrap; justify-content:flex-end; }
 .tab {
@@ -47,7 +56,9 @@ a { color: inherit; }
   padding: 8px 10px; border-radius: 12px; font-size: 12px; cursor: pointer;
 }
 .tab.active { background: rgba(255,255,255,.10); color: var(--text); }
-.main { margin-top: 14px; }
+.main { margin-top: 14px; 
+  flex: 1;
+}
 .card { background: rgba(18,19,26,.72); border: 1px solid var(--line); border-radius: 18px; padding: 14px; }
 .stack > * + * { margin-top: 10px; }
 .h2 { font-size: 16px; margin: 0 0 6px; }
@@ -59,6 +70,7 @@ a { color: inherit; }
   padding: 6px 10px; border-radius: 999px;
   font-size: 12px; color: var(--muted); white-space: nowrap;
 }
+.pill.wrap { white-space: normal; max-width: 100%; }
 .pill strong { color: var(--text); font-weight: 650; }
 .pill.good { background: var(--good); }
 .pill.warn { background: var(--warn); }
@@ -99,6 +111,34 @@ a { color: inherit; }
   font-size: 12px;
   cursor: pointer;
 }
+
+.iconBtn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.iconBtn svg { display:block; }
+.iconBtn:active { transform: translateY(1px); }
+
+.lastSetRow { margin-top: 10px; display:flex; justify-content:flex-start; align-items:center; }
+.lastSetPill{
+  display:inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .setTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .setTable th {
   text-align: left; font-size: 11px; color: var(--muted2);
@@ -193,23 +233,34 @@ select {
 .draftIndicator.saved{ color: rgba(255,255,255,.55); }
 .draftIndicator.error{ color: rgba(255,170,170,.78); }
 
+
+.tabsRight{
+  display:inline-grid;
+  grid-auto-flow:row;
+  gap:10px;
+  justify-items:end;
+}
+.tabsRight .tab{
+  width:fit-content;
+}
+.topbar{
+  align-items:flex-start;
+}
+.brand h1{margin:0 0 6px 0;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <div class="dot"></div>
-      <div>
-        <h1>Workout Tracker</h1>
-        <div id="statusLine" class="profileRow"><span class="sub">Signing in…</span></div>
-      </div>
+      <h1>Workout Tracker</h1>
+      <div id="statusLine" class="profileRow"><span class="sub">Signing in…</span></div>
     </div>
 
-    <div class="tabs">
+    <div class="tabs tabsRight">
       <button class="tab active" data-route="home">Home</button>
       <button class="tab" data-route="workout">Workout</button>
-      <button class="tab" data-route="exercise">Exercise</button>
+      <button class="tab" data-route="exercise">Stats</button>
       <button class="tab" data-route="program">Program</button>
     </div>
   </div>
@@ -258,8 +309,7 @@ select {
         <div style="font-size:13px; font-weight:800;" id="subTitle">Substitute</div>
         <div class="sub">Pick what you actually did. Progress will track the performed exercise.</div>
       </div>
-      <button class="miniBtn" id="subClose">Close</button>
-    </div>
+          </div>
     <div class="hr"></div>
     <div class="stack" id="subBody"></div>
     <div class="modalActions">
@@ -309,8 +359,7 @@ select {
       `<div style="font-weight:800;margin-bottom:6px">Startup issue</div>` +
       `<div style="opacity:.85;margin-bottom:8px">${msg}</div>` +
       (src? `<div style="opacity:.6;word-break:break-all;margin-bottom:10px">${src}</div>` : '') +
-      `<div style="opacity:.75;margin-bottom:10px">If you opened this inside Telegram/Instagram in-app browser, tap the share icon → <b>Open in Safari</b>.</div>` +
-      `<button id="btnRetryBoot" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+            `<button id="btnRetryBoot" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
     );
     setTimeout(()=>{
       const b=document.getElementById('btnRetryBoot');
@@ -323,8 +372,7 @@ select {
     show(
       `<div style="font-weight:800;margin-bottom:6px">Startup issue</div>` +
       `<div style="opacity:.85;margin-bottom:10px">${msg}</div>` +
-      `<div style="opacity:.75;margin-bottom:10px">Try opening in Safari (not an in-app browser). If your network blocks gstatic.com, Firebase can’t load.</div>` +
-      `<button id="btnRetryBoot2" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+            `<button id="btnRetryBoot2" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
     );
     setTimeout(()=>{
       const b=document.getElementById('btnRetryBoot2');
@@ -340,9 +388,8 @@ select {
     if(statusText.toLowerCase().includes('signing in')){
       show(
         `<div style="font-weight:800;margin-bottom:6px">Still signing in…</div>` +
-        `<div style="opacity:.85;margin-bottom:10px">Firebase Auth hasn’t finished. This is often caused by in-app browsers, blocked storage, or blocked access to <b>gstatic.com</b>.</div>` +
-        `<div style="opacity:.75;margin-bottom:10px">Fix: open in Safari (share icon → Open in Safari), or try Private mode once.</div>` +
-        `<button id="btnRetryBoot3" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
+        `<div style="opacity:.85;margin-bottom:10px">Firebase Auth hasn’t finished. Common causes are blocked cookies/storage, network restrictions, or blocked access to <b>gstatic.com</b>.</div>` +
+                `<button id="btnRetryBoot3" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
       );
       setTimeout(()=>{
         const b=document.getElementById('btnRetryBoot3');
@@ -527,6 +574,24 @@ function parseRestMidpoint(restStr) {
   const secs = Math.round((mid - mins) * 60);
   return mins*60 + secs;
 }
+
+function parseRestUpper(restStr) {
+  if (!restStr) return null;
+  const s = String(restStr).toLowerCase().trim();
+  // examples: "2-3 min", "90-120s", "2 min", "120s"
+  const nums = (s.match(/\d+(?:\.\d+)?/g) || []).map(Number).filter(n => !Number.isNaN(n));
+  if (!nums.length) return null;
+  let upper = nums.length >= 2 ? Math.max(nums[0], nums[1]) : nums[0];
+  const isSec = s.includes('s') && !s.includes('min');
+  const isMin = s.includes('min');
+  let seconds = upper;
+  if (isMin) seconds = Math.round(upper * 60);
+  if (!isMin && !isSec) {
+    // if unit missing: assume minutes when number is small, seconds when large
+    seconds = upper <= 10 ? Math.round(upper * 60) : Math.round(upper);
+  }
+  return Math.max(0, seconds);
+}
 function fmtTime(sec) {
   const m = Math.floor(sec/60);
   const s = sec % 60;
@@ -686,7 +751,7 @@ async function renderHome() {
       ${
         canStart
           ? `<button class="btn" id="btnStart">${isResumable ? 'Resume workout' : 'Start workout'}</button>`
-          : `<button class="btn secondary" disabled>Rest day (no logging)</button>`
+          : `<button class="btn secondary" disabled>Rest day</button>`
       }
     </div>
 
@@ -730,69 +795,53 @@ async function renderWorkout() {
     }
     const s = state.session;
 
-    // Fetch last-used info in a safe way (never block render forever)
-    const lastMap = {};
-    await Promise.all(s.exercises.map(async (ex) => {
-      const performed = ex.performedExercise || ex.plannedExercise;
-      try {
-        const idx = await getExerciseIndex(performed);
-        lastMap[performed] = idx;
-      } catch (e) {
-        console.warn('exercise index read failed', performed, e);
-        lastMap[performed] = null;
-      }
-    }));
-
     const cards = s.exercises.map((ex, i) => {
       const performed = ex.performedExercise || ex.plannedExercise;
-      const idx = lastMap[performed];
-      const lastBest = idx?.lastBest ? `${fmtWeight(idx.lastBest.weight)} kg × ${idx.lastBest.reps ?? ''}` : '—';
-      const techniqueBadge = ex.technique ? `<span class="pill"><strong>Last set</strong> ${ex.technique}</span>` : '';
-      const subs = [ex.sub1, ex.sub2].filter(Boolean).join(' • ') || '—';
 
       const setsRows = ex.sets.map((st, si) => {
         const isLast = (si === ex.sets.length - 1);
         const guidance = isLast ? ex.lastRpe : ex.earlyRpe;
-        const extra = (isLast && ex.technique) ? ` • ${ex.technique}` : '';
         return `
           <tr>
             <td>${si+1}</td>
             <td>${ex.reps}</td>
-            <td>${guidance || '—'}${extra}</td>
+            <td>${guidance || '—'}</td>
             <td><input data-ex="${i}" data-set="${si}" data-field="weight" inputmode="decimal" placeholder="kg" value="${st.weight ?? ''}"></td>
             <td><input class="small" data-ex="${i}" data-set="${si}" data-field="reps" inputmode="numeric" placeholder="reps" value="${st.reps ?? ''}"></td>
           </tr>
         `;
       }).join('');
 
-      const restMid = parseRestMidpoint(ex.rest);
-      const restLabel = restMid ? fmtTime(restMid) : '—';
+      const restUpper = parseRestUpper(ex.rest);
+      const restLabel = restUpper ? fmtTime(restUpper) : '—';
 
       return `
         <div class="exerciseCard">
           <div class="exerciseTitleRow">
-            <div>
+            <div style="flex:1; min-width:0;">
               <p class="exerciseTitle" data-open-ex="${encodeURIComponent(performed)}">${performed}</p>
-              <div class="meta">Planned: ${ex.plannedExercise} • Warm-up: ${ex.warmupSets || '—'} sets (no logging) • Rest: ${ex.rest || '—'}</div>
+              <div class="meta">Warm-up: ${ex.warmupSets || '—'} sets • Rest: ${ex.rest || '—'}</div>
+              <div class="lastSetRow">
+                <span class="pill lastSetPill">Last set: ${ex.technique || '—'}</span>
+              </div>
             </div>
-            <div class="miniBtns" style="margin-top:0">${techniqueBadge}</div>
+            <button class="iconBtn" data-action="sub" data-ex="${i}" aria-label="Swap / substitute">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+            </button>
           </div>
 
-          <div style="height:10px"></div>
-
-          <div class="row" style="align-items:center">
-            <span class="pill"><strong>Last time</strong> ${lastBest}</span>
-            <span class="pill"><strong>Plan</strong> ${ex.workingSets}× ${ex.reps}</span>
-          </div>
 
           <table class="setTable">
             <thead>
               <tr>
-                <th style="width:28px">Set</th>
-                <th style="width:90px">Target</th>
-                <th>Guidance</th>
-                <th style="width:100px">Weight</th>
-                <th style="width:80px">Reps</th>
+                <th style="width:36px">SET</th>
+                <th style="width:86px">TARGET</th>
+                <th style="width:70px">RPE</th>
+                <th style="width:110px">WEIGHT</th>
+                <th style="width:86px">REPS</th>
               </tr>
             </thead>
             <tbody>${setsRows}</tbody>
@@ -801,12 +850,9 @@ async function renderWorkout() {
           <div class="miniBtns">
             <button class="miniBtn" data-action="copyLastSet" data-ex="${i}">Copy last set</button>
             <button class="miniBtn" data-action="copyLastWorkout" data-ex="${i}">Copy last workout</button>
-            <button class="miniBtn" data-action="rest" data-ex="${i}" data-rest="${restMid ?? ''}">Rest ${restLabel}</button>
-            <button class="miniBtn" data-action="sub" data-ex="${i}">Substitute</button>
+            <button class="miniBtn" data-action="rest" data-ex="${i}" data-rest="${restUpper ?? ''}">Rest ${restLabel}</button>
           </div>
-
-          <div class="note"><span class="smallMuted">Subs:</span> ${subs}</div>
-          ${ex.notes ? `<div class="note">${ex.notes}</div>` : ''}
+${ex.notes ? `<div class="note"><span class="smallMuted">Coach\'s Note:</span> ${ex.notes}</div>` : ''}
 
           <div class="miniBtns" id="timerRow-${i}" style="display:none;">
             <span class="pill"><strong>Rest</strong> <span id="timerVal-${i}">0:00</span></span>
@@ -818,7 +864,7 @@ async function renderWorkout() {
 
     screens.workout.innerHTML = `
       <div>
-        <div class="row" style="align-items:flex-start"><div><div class="h2">${plan.workout}</div><p class="sub">${plan.block} • Week ${plan.week} • Day ${plan.day}. Log weight + reps only. Timers are manual.</p></div><div id="draftIndicator" class="draftIndicator"></div></div>
+        <div class="row" style="align-items:flex-start"><div><div class="h2">${plan.workout}</div><p class="sub">${plan.block} • Week ${plan.week} • Day ${plan.day}</p></div><div id="draftIndicator" class="draftIndicator"></div></div>
       </div>
 
       <div class="hr"></div>
@@ -1062,28 +1108,50 @@ $('#pickerCancel').addEventListener('click', closePicker);
 $('#pickerApply').addEventListener('click', async () => {
   const week = Number($('#pickWeek').value);
   const day = Number($('#pickDay').value);
-  closePicker();
 
   let ptr = { week, day };
   if (isRestDay(ptr.week, ptr.day)) {
     const next = advanceToNextWorkoutDay(ptr.week, ptr.day);
     if (next) { showToast(`Rest day selected. Skipping to Week ${next.week} Day ${next.day}.`); ptr = next; }
   }
+
+  // If there is an in-progress workout draft for a different day, warn before discarding.
+  const dLocal = loadDraft();
+  const dCloud = state.cloudDraft;
+  const hasLocal = !!(dLocal && Array.isArray(dLocal.exercises) && (dLocal.week && dLocal.day));
+  const hasCloud = !!(dCloud && Array.isArray(dCloud.exercises) && (dCloud.week && dCloud.day));
+  const hasSession = !!state.session;
+
+  const draftPtr = hasLocal ? { week: Number(dLocal.week), day: Number(dLocal.day) }
+                : hasCloud ? { week: Number(dCloud.week), day: Number(dCloud.day) }
+                : hasSession ? { week: Number(state.session.week), day: Number(state.session.day) }
+                : null;
+
+  const switchingAwayFromDraft = !!(draftPtr && (draftPtr.week !== ptr.week || draftPtr.day !== ptr.day));
+
+  if (switchingAwayFromDraft) {
+    const ok = confirm(`You have an in-progress workout (Week ${draftPtr.week} Day ${draftPtr.day}).\n\nSwitching to Week ${ptr.week} Day ${ptr.day} will discard it.\n\nContinue?`);
+    if (!ok) return; // keep current pointer unchanged
+  }
+
+  closePicker();
+
   state.current = ptr;
   state.currentPlan = getDayPlan(ptr.week, ptr.day);
   await savePointer(ptr);
 
-  const d = loadDraft();
-  if (d && (d.week !== ptr.week || d.day !== ptr.day)) clearDraft();
-  if (state.cloudDraft && (Number(state.cloudDraft.week) !== ptr.week || Number(state.cloudDraft.day) !== ptr.day)) {
+  if (switchingAwayFromDraft) {
+    clearDraft();
     await clearCloudDraft();
     state.cloudDraft = null;
+    state.session = null;
+    showToast('In-progress workout discarded.');
   }
 
   await render();
 });
 
-/* Substitute modal */
+/* Substitute modal *//* Substitute modal */
 let subCtx = null;
 function openSubModal(exIndex) {
   const ex = state.session.exercises[exIndex];
@@ -1107,14 +1175,12 @@ function openSubModal(exIndex) {
     <div>
       <div class="label">Or type a custom substitution (optional)</div>
       <input id="subCustom" placeholder="e.g., Machine Chest Press" style="width:100%" />
-      <div class="sub">If filled, this overrides the dropdown selection.</div>
-    </div>
+          </div>
   `;
   $('#subSelect').value = encodeURIComponent(ex.performedExercise || ex.plannedExercise);
   $('#subCustom').value = '';
 }
 function closeSubModal() { $('#modal-sub').style.display = 'none'; subCtx = null; }
-$('#subClose').addEventListener('click', closeSubModal);
 $('#subCancel').addEventListener('click', closeSubModal);
 $('#subApply').addEventListener('click', async () => {
   if (!subCtx) return;
@@ -1125,7 +1191,7 @@ $('#subApply').addEventListener('click', async () => {
   persistSessionDraft();
   closeSubModal();
   showToast('Substitution saved.');
-  await renderWorkout();
+  updateExerciseInputs(exIndex, targetSet);
 });
 
 /* Rest timers */
@@ -1157,6 +1223,22 @@ function stopRestTimer(exIndex) {
 }
 
 /* Copy behaviors */
+
+function updateExerciseInputs(exIndex, setIndex=null) {
+  // Update inputs in-place so we don't re-render (prevents scroll jump)
+  if (!state.session) return;
+  const ex = state.session.exercises[exIndex];
+  if (!ex) return;
+  const updateOne = (si) => {
+    const st = ex.sets[si];
+    const w = document.querySelector(`input[data-ex="${exIndex}"][data-set="${si}"][data-field="weight"]`);
+    const r = document.querySelector(`input[data-ex="${exIndex}"][data-set="${si}"][data-field="reps"]`);
+    if (w) w.value = (st.weight ?? '');
+    if (r) r.value = (st.reps ?? '');
+  };
+  if (setIndex !== null && setIndex !== undefined) { updateOne(setIndex); return; }
+  for (let si = 0; si < ex.sets.length; si++) updateOne(si);
+}
 async function doCopyLastSet(exIndex) {
   const ex = state.session.exercises[exIndex];
   let targetSet = ex.sets.findIndex(s => !normName(s.weight) || !normName(s.reps));
@@ -1169,7 +1251,7 @@ async function doCopyLastSet(exIndex) {
       ex.sets[targetSet].reps = prev.reps;
       persistSessionDraft();
       showToast('Copied previous set.');
-      await renderWorkout();
+      updateExerciseInputs(exIndex, targetSet);
       return;
     }
   }
@@ -1183,7 +1265,7 @@ async function doCopyLastSet(exIndex) {
   ex.sets[targetSet].reps = from.reps ?? '';
   persistSessionDraft();
   showToast('Copied from last session.');
-  await renderWorkout();
+  updateExerciseInputs(exIndex, targetSet);
 }
 async function doCopyLastWorkout(exIndex) {
   const ex = state.session.exercises[exIndex];
@@ -1198,7 +1280,7 @@ async function doCopyLastWorkout(exIndex) {
   }
   persistSessionDraft();
   showToast('Copied last workout.');
-  await renderWorkout();
+  updateExerciseInputs(exIndex, targetSet);
 }
 
 let _cloudDraftTimer = null;
@@ -1232,6 +1314,7 @@ async function saveCloudDraftNow() {
     exercises: s.exercises || [],
     updatedAt: serverTimestamp(),
     updatedAtClient: new Date().toISOString(),
+    updatedAtMs: Date.now(),
   };
   const h = _hashDraft({ ...payload, updatedAt: undefined }); // ignore serverTimestamp in hash
   if (h === _lastCloudDraftHash) return;
@@ -1261,6 +1344,7 @@ function persistSessionDraft() {
     workout: state.session.workout,
     startedAt: state.session.startedAt,
     exercises: state.session.exercises,
+    updatedAtMs: Date.now(),
   });
   scheduleCloudDraftSave();
 }
@@ -1445,8 +1529,14 @@ async function bootstrap() {
   state.profileId = pid;
 
   // Header shows only Profile ID + Copy
-  statusLine.innerHTML = `<span class="pill"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>` + `<button class="miniBtn" id="btnCopyHeader">Copy</button>`;
-  document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileLink);
+  statusLine.innerHTML = `<span class="pill ellipsis"><strong>Profile ID</strong> ${state.profileId.slice(0,8)}…${state.profileId.slice(-4)}</span>` +
+`<button class="miniBtn iconOnly" id="btnCopyHeader" aria-label="Copy profile link">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+</button>`;
+document.getElementById('btnCopyHeader')?.addEventListener('click', copyProfileLink);
     window.__BOOT_OK = true;
 
 
