@@ -1,4 +1,4 @@
-<!-- build:v2.3a-20251216051301Z -->
+<!-- build:v2.2-20251216045231Z -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -176,24 +176,6 @@ select {
   background: rgba(255,255,255,.08);
   padding: 6px 10px; font-size: 12px; color: var(--muted);
 }
-
-.draftIndicator{
-  font-size: 11px;
-  color: var(--muted2);
-  text-align: right;
-  padding-top: 2px;
-  min-width: 92px;
-}
-.draftIndicator .dot{
-  width: 6px; height: 6px; border-radius: 50%;
-  display:inline-block; margin-right:6px; vertical-align: middle;
-  background: rgba(255,255,255,.35);
-  box-shadow:none;
-}
-.draftIndicator.saving{ color: rgba(255,255,255,.55); }
-.draftIndicator.saved{ color: rgba(255,255,255,.55); }
-.draftIndicator.error{ color: rgba(255,170,170,.75); }
-
 </style>
 </head>
 <body>
@@ -279,7 +261,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getAuth, onAuthStateChanged, signInAnonymously } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js';
 import {
   getFirestore, doc, setDoc, getDoc, collection, serverTimestamp,
-  writeBatch, query, orderBy, limit, getDocs, deleteDoc
+  writeBatch, query, orderBy, limit, getDocs
 } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js';
 
 const firebaseConfig = {
@@ -305,28 +287,6 @@ const screens = {
 };
 const tabs = Array.from(document.querySelectorAll('.tab'));
 const statusLine = $('#statusLine');
-
-const draftUi = { state: 'idle', lastSavedAt: null, lastError: null }; 
-function renderDraftIndicator() {
-  const el = document.getElementById('draftIndicator');
-  if (!el) return;
-  el.classList.remove('saving','saved','error');
-  if (draftUi.state === 'saving') {
-    el.classList.add('saving');
-    el.innerHTML = `<span class="dot"></span>Saving…`;
-  } else if (draftUi.state === 'saved') {
-    el.classList.add('saved');
-    const t = draftUi.lastSavedAt ? new Date(draftUi.lastSavedAt) : null;
-    const txt = t ? `Saved ${t.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}` : 'Saved';
-    el.innerHTML = `<span class="dot"></span>${txt}`;
-  } else if (draftUi.state === 'error') {
-    el.classList.add('error');
-    el.innerHTML = `Draft not saved`;
-  } else {
-    el.innerHTML = '';
-  }
-}
-
 
 async function copyProfileLink() {
   try {
@@ -492,7 +452,6 @@ const state = {
   currentPlan: null,
   session: null,        // in-progress session
   selectedExercise: null,
-  cloudDraft: null,     // last fetched draft from Firestore
 };
 
 function draftKey() {
@@ -505,18 +464,6 @@ function clearDraft() { try { localStorage.removeItem(draftKey()); } catch {} }
 /* Firestore paths (URL profile owns storage) */
 function profDoc(path) { return doc(db, `profiles/${state.profileId}/${path}`); }
 function profCol(path) { return collection(db, `profiles/${state.profileId}/${path}`); }
-
-function draftDocRef() { return profDoc('state/draft'); }
-
-async function loadCloudDraft() {
-  const snap = await safeGetDoc(draftDocRef());
-  if (snap && snap.exists()) return snap.data();
-  return null;
-}
-
-async function clearCloudDraft() {
-  try { await deleteDoc(draftDocRef()); } catch (e) { console.warn('delete draft failed', e); }
-}
 
 async function safeGetDoc(ref) {
   try { return await getDoc(ref); } catch (e) { console.warn('getDoc failed', e); return null; }
@@ -558,11 +505,8 @@ async function getExerciseIndex(exerciseName) {
 async function renderHome() {
   const ptr = state.current;
   const plan = state.currentPlan;
-  const draftLocal = loadDraft();
-  const draftCloud = state.cloudDraft;
-  const isLocalResumable = !!draftLocal && plan && draftLocal.week === ptr.week && draftLocal.day === ptr.day;
-  const isCloudResumable = !!draftCloud && plan && Number(draftCloud.week) === ptr.week && Number(draftCloud.day) === ptr.day;
-  const isResumable = isLocalResumable || isCloudResumable;
+  const draft = loadDraft();
+  const isResumable = !!draft && plan && draft.week === ptr.week && draft.day === ptr.day;
 
   const canStart = plan && !plan.isRest;
 
@@ -623,13 +567,121 @@ async function renderHome() {
 async function renderWorkout() {
   const plan = state.currentPlan;
   if (!plan) {
+    screens.workout.innerHTML = `<div class="h2">Workout</div><p class="sub">Pick a week/day first.</p>`;
+    return;
+  }
+  if (plan.isRest) {
     screens.workout.innerHTML = `
-      <div class="row" style="align-items:flex-start">
-        <div>
-          <div class="h2">${plan.workout}</div>
-          <p class="sub">${plan.block} • Week ${plan.week} • Day ${plan.day}. Log weight + reps only. Timers are manual.</p>
+      <div class="h2">Rest day</div>
+      <p class="sub">No workout to log today. Use Home to jump to another day if needed.</p>
+      <button class="btn secondary" id="restBack">Back to Home</button>
+    `;
+    $('#restBack')?.addEventListener('click', () => { setRoute('home'); render(); });
+    return;
+  }
+
+  // Show immediate loading state (prevents "blank page" feel)
+  screens.workout.innerHTML = `
+    <div class="h2">Loading workout…</div>
+    <p class="sub">If this takes long, it’s usually Firestore rules or network. You can still log once it loads.</p>
+  `;
+
+  try {
+    if (!state.session || state.session.week !== plan.week || state.session.day !== plan.day) {
+      await startOrResumeWorkout();
+    }
+    const s = state.session;
+
+    // Fetch last-used info in a safe way (never block render forever)
+    const lastMap = {};
+    await Promise.all(s.exercises.map(async (ex) => {
+      const performed = ex.performedExercise || ex.plannedExercise;
+      try {
+        const idx = await getExerciseIndex(performed);
+        lastMap[performed] = idx;
+      } catch (e) {
+        console.warn('exercise index read failed', performed, e);
+        lastMap[performed] = null;
+      }
+    }));
+
+    const cards = s.exercises.map((ex, i) => {
+      const performed = ex.performedExercise || ex.plannedExercise;
+      const idx = lastMap[performed];
+      const lastBest = idx?.lastBest ? `${fmtWeight(idx.lastBest.weight)} kg × ${idx.lastBest.reps ?? ''}` : '—';
+      const techniqueBadge = ex.technique ? `<span class="pill"><strong>Last set</strong> ${ex.technique}</span>` : '';
+      const subs = [ex.sub1, ex.sub2].filter(Boolean).join(' • ') || '—';
+
+      const setsRows = ex.sets.map((st, si) => {
+        const isLast = (si === ex.sets.length - 1);
+        const guidance = isLast ? ex.lastRpe : ex.earlyRpe;
+        const extra = (isLast && ex.technique) ? ` • ${ex.technique}` : '';
+        return `
+          <tr>
+            <td>${si+1}</td>
+            <td>${ex.reps}</td>
+            <td>${guidance || '—'}${extra}</td>
+            <td><input data-ex="${i}" data-set="${si}" data-field="weight" inputmode="decimal" placeholder="kg" value="${st.weight ?? ''}"></td>
+            <td><input class="small" data-ex="${i}" data-set="${si}" data-field="reps" inputmode="numeric" placeholder="reps" value="${st.reps ?? ''}"></td>
+          </tr>
+        `;
+      }).join('');
+
+      const restMid = parseRestMidpoint(ex.rest);
+      const restLabel = restMid ? fmtTime(restMid) : '—';
+
+      return `
+        <div class="exerciseCard">
+          <div class="exerciseTitleRow">
+            <div>
+              <p class="exerciseTitle" data-open-ex="${encodeURIComponent(performed)}">${performed}</p>
+              <div class="meta">Planned: ${ex.plannedExercise} • Warm-up: ${ex.warmupSets || '—'} sets (no logging) • Rest: ${ex.rest || '—'}</div>
+            </div>
+            <div class="miniBtns" style="margin-top:0">${techniqueBadge}</div>
+          </div>
+
+          <div style="height:10px"></div>
+
+          <div class="row" style="align-items:center">
+            <span class="pill"><strong>Last time</strong> ${lastBest}</span>
+            <span class="pill"><strong>Plan</strong> ${ex.workingSets}× ${ex.reps}</span>
+          </div>
+
+          <table class="setTable">
+            <thead>
+              <tr>
+                <th style="width:28px">Set</th>
+                <th style="width:90px">Target</th>
+                <th>Guidance</th>
+                <th style="width:100px">Weight</th>
+                <th style="width:80px">Reps</th>
+              </tr>
+            </thead>
+            <tbody>${setsRows}</tbody>
+          </table>
+
+          <div class="miniBtns">
+            <button class="miniBtn" data-action="copyLastSet" data-ex="${i}">Copy last set</button>
+            <button class="miniBtn" data-action="copyLastWorkout" data-ex="${i}">Copy last workout</button>
+            <button class="miniBtn" data-action="rest" data-ex="${i}" data-rest="${restMid ?? ''}">Rest ${restLabel}</button>
+            <button class="miniBtn" data-action="sub" data-ex="${i}">Substitute</button>
+          </div>
+
+          <div class="note"><span class="smallMuted">Subs:</span> ${subs}</div>
+          ${ex.notes ? `<div class="note">${ex.notes}</div>` : ''}
+
+          <div class="miniBtns" id="timerRow-${i}" style="display:none;">
+            <span class="pill"><strong>Rest</strong> <span id="timerVal-${i}">0:00</span></span>
+            <button class="miniBtn" data-action="stopRest" data-ex="${i}">Stop</button>
+          </div>
         </div>
-        <div id="draftIndicator" class="draftIndicator"></div>
+      `;
+    }).join('');
+
+    screens.workout.innerHTML = `
+      <div>
+        <div class="h2">${plan.workout}</div>
+        <p class="sub">${plan.block} • Week ${plan.week} • Day ${plan.day}. Log weight + reps only. Timers are manual.</p>
       </div>
 
       <div class="hr"></div>
@@ -672,7 +724,6 @@ async function renderWorkout() {
     });
 
     $('#btnBackHome')?.addEventListener('click', () => { setRoute('home'); render(); });
-    renderDraftIndicator();
     $('#btnFinish')?.addEventListener('click', finishWorkout);
 
   } catch (e) {
@@ -886,10 +937,6 @@ $('#pickerApply').addEventListener('click', async () => {
 
   const d = loadDraft();
   if (d && (d.week !== ptr.week || d.day !== ptr.day)) clearDraft();
-  if (state.cloudDraft && (Number(state.cloudDraft.week) !== ptr.week || Number(state.cloudDraft.day) !== ptr.day)) {
-    await clearCloudDraft();
-    state.cloudDraft = null;
-  }
 
   await render();
 });
@@ -1012,48 +1059,6 @@ async function doCopyLastWorkout(exIndex) {
   await renderWorkout();
 }
 
-let _cloudDraftTimer = null;
-let _lastCloudDraftHash = '';
-
-function _hashDraft(obj) {
-  // Lightweight stable hash: JSON string (good enough for single-user drafts)
-  try { return JSON.stringify(obj); } catch { return String(Date.now()); }
-}
-
-function scheduleCloudDraftSave() {
-  if (!state.session) return;
-  clearTimeout(_cloudDraftTimer);
-  _cloudDraftTimer = setTimeout(saveCloudDraftNow, 650);
-}
-
-async function saveCloudDraftNow() {
-  if (!state.session) return;
-  const s = state.session;
-  const payload = {
-    version: 1,
-    profileId: state.profileId,
-    week: s.week,
-    day: s.day,
-    block: s.block,
-    workout: s.workout,
-    startedAt: s.startedAt || Date.now(),
-    exercises: s.exercises || [],
-    updatedAt: serverTimestamp(),
-    updatedAtClient: new Date().toISOString(),
-  };
-  const h = _hashDraft({ ...payload, updatedAt: undefined }); // ignore serverTimestamp in hash
-  if (h === _lastCloudDraftHash) return;
-  _lastCloudDraftHash = h;
-  try {
-    await setDoc(draftDocRef(), payload, { merge: true });
-    // keep in-memory copy so Home can show Resume immediately
-    state.cloudDraft = { ...payload, updatedAt: undefined };
-  } catch (e) {
-    console.warn('cloud draft save failed', e);
-      draftUi.state = 'error'; draftUi.lastError = String(e); renderDraftIndicator();
-  }
-}
-
 function persistSessionDraft() {
   if (!state.session) return;
   saveDraft({
@@ -1065,41 +1070,22 @@ function persistSessionDraft() {
     startedAt: state.session.startedAt,
     exercises: state.session.exercises,
   });
-  scheduleCloudDraftSave();
 }
-
 
 async function startOrResumeWorkout() {
   const plan = state.currentPlan;
   if (!plan || plan.isRest) return;
 
-  const dLocal = loadDraft();
-  if (dLocal && dLocal.week === plan.week && dLocal.day === plan.day && Array.isArray(dLocal.exercises)) {
+  const d = loadDraft();
+  if (d && d.week === plan.week && d.day === plan.day && Array.isArray(d.exercises)) {
     state.session = {
-      week: dLocal.week,
-      day: dLocal.day,
+      week: d.week,
+      day: d.day,
       block: plan.block,
       workout: plan.workout,
-      startedAt: dLocal.startedAt || Date.now(),
-      exercises: dLocal.exercises,
+      startedAt: d.startedAt || Date.now(),
+      exercises: d.exercises,
     };
-    // ensure cloud has latest (in case local was restored)
-    scheduleCloudDraftSave();
-    return;
-  }
-
-  const dCloud = state.cloudDraft;
-  if (dCloud && Number(dCloud.week) === plan.week && Number(dCloud.day) === plan.day && Array.isArray(dCloud.exercises)) {
-    state.session = {
-      week: Number(dCloud.week),
-      day: Number(dCloud.day),
-      block: plan.block,
-      workout: plan.workout,
-      startedAt: Number(dCloud.startedAt) || Date.now(),
-      exercises: dCloud.exercises,
-    };
-    // mirror to local for faster reloads
-    persistSessionDraft();
     return;
   }
 
@@ -1217,8 +1203,6 @@ async function finishWorkout() {
   }
 
   clearDraft();
-  await clearCloudDraft();
-  state.cloudDraft = null;
   state.session = null;
 
   const next = advanceToNextWorkoutDay(plan.week, plan.day);
@@ -1235,7 +1219,7 @@ async function finishWorkout() {
   await render();
 }
 
-const BUILD_ID = 'v2.3-draft-20251216050705Z';
+const BUILD_ID = 'v2.2-20251216045231Z';
 
 /* Auth bootstrap */
 async function bootstrap() {
@@ -1274,7 +1258,6 @@ async function bootstrap() {
 
     state.current = await loadPointer();
     state.currentPlan = getDayPlan(state.current.week, state.current.day);
-    state.cloudDraft = await loadCloudDraft();
 
     await render();
   });
