@@ -356,7 +356,7 @@ select {
     if(statusText.toLowerCase().includes('signing in')){
       show(
         `<div style="font-weight:800;margin-bottom:6px">Still signing in…</div>` +
-        `<div style="opacity:.85;margin-bottom:10px">Firebase Auth hasn’t finished. This is often caused by in-app browsers, blocked storage, or blocked access to <b>gstatic.com</b>.</div>` +
+        `<div style="opacity:.85;margin-bottom:10px">Firebase Auth hasn’t finished. Common causes are blocked cookies/storage, network restrictions, or blocked access to <b>gstatic.com</b>.</div>` +
                 `<button id="btnRetryBoot3" style="width:100%;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.10);color:rgba(255,255,255,.92);font-size:13px">Retry</button>`
       );
       setTimeout(()=>{
@@ -763,25 +763,8 @@ async function renderWorkout() {
     }
     const s = state.session;
 
-    // Fetch last-used info in a safe way (never block render forever)
-    const lastMap = {};
-    await Promise.all(s.exercises.map(async (ex) => {
-      const performed = ex.performedExercise || ex.plannedExercise;
-      try {
-        const idx = await getExerciseIndex(performed);
-        lastMap[performed] = idx;
-      } catch (e) {
-        console.warn('exercise index read failed', performed, e);
-        lastMap[performed] = null;
-      }
-    }));
-
     const cards = s.exercises.map((ex, i) => {
       const performed = ex.performedExercise || ex.plannedExercise;
-      const idx = lastMap[performed];
-      const lastBest = idx?.lastBest ? `${fmtWeight(idx.lastBest.weight)} kg × ${idx.lastBest.reps ?? ''}` : '—';
-      const techniqueBadge = ex.technique ? `<span class="pill"><strong>Last set</strong> ${ex.technique}</span>` : '';
-      const subs = [ex.sub1, ex.sub2].filter(Boolean).join(' • ') || '—';
 
       const setsRows = ex.sets.map((st, si) => {
         const isLast = (si === ex.sets.length - 1);
@@ -808,14 +791,11 @@ async function renderWorkout() {
               <p class="exerciseTitle" data-open-ex="${encodeURIComponent(performed)}">${performed}</p>
               <div class="meta">Planned: ${ex.plannedExercise} • Warm-up: ${ex.warmupSets || '—'} sets • Rest: ${ex.rest || '—'}</div>
             </div>
-            <div class="miniBtns" style="margin-top:0">${techniqueBadge}<button class="iconBtn" title="Edit / substitute" data-action="sub" data-ex="${i}" aria-label="Edit / substitute">✎</button></div>
           </div>
 
-          <div style="height:10px"></div>
-
-          <div class="row" style="align-items:center">
-            <span class="pill"><strong>Last time</strong> ${lastBest}</span>
-            <span class="pill"><strong>Plan</strong> ${ex.workingSets}× ${ex.reps}</span>
+          <div class="miniBtns" style="margin-top:10px">
+            <span class="pill"><strong>Last set</strong> ${ex.technique || '—'}</span>
+            <button class="miniBtn" data-action="sub" data-ex="${i}">Swap</button>
           </div>
 
           <table class="setTable">
