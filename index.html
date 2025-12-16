@@ -66,6 +66,7 @@ a { color: inherit; }
   padding: 6px 10px; border-radius: 999px;
   font-size: 12px; color: var(--muted); white-space: nowrap;
 }
+.pill.wrap { white-space: normal; max-width: 100%; }
 .pill strong { color: var(--text); font-weight: 650; }
 .pill.good { background: var(--good); }
 .pill.warn { background: var(--warn); }
@@ -106,6 +107,24 @@ a { color: inherit; }
   font-size: 12px;
   cursor: pointer;
 }
+
+.iconBtn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.iconBtn svg { display:block; }
+.iconBtn:active { transform: translateY(1px); }
+
+.lastSetRow { margin-top: 10px; }
 .setTable { width: 100%; border-collapse: collapse; margin-top: 10px; }
 .setTable th {
   text-align: left; font-size: 11px; color: var(--muted2);
@@ -769,12 +788,11 @@ async function renderWorkout() {
       const setsRows = ex.sets.map((st, si) => {
         const isLast = (si === ex.sets.length - 1);
         const guidance = isLast ? ex.lastRpe : ex.earlyRpe;
-        const extra = (isLast && ex.technique) ? ` • ${ex.technique}` : '';
         return `
           <tr>
             <td>${si+1}</td>
             <td>${ex.reps}</td>
-            <td>${guidance || '—'}${extra}</td>
+            <td>${guidance || '—'}</td>
             <td><input data-ex="${i}" data-set="${si}" data-field="weight" inputmode="decimal" placeholder="kg" value="${st.weight ?? ''}"></td>
             <td><input class="small" data-ex="${i}" data-set="${si}" data-field="reps" inputmode="numeric" placeholder="reps" value="${st.reps ?? ''}"></td>
           </tr>
@@ -787,25 +805,30 @@ async function renderWorkout() {
       return `
         <div class="exerciseCard">
           <div class="exerciseTitleRow">
-            <div>
+            <div style="flex:1; min-width:0;">
               <p class="exerciseTitle" data-open-ex="${encodeURIComponent(performed)}">${performed}</p>
-              <div class="meta">Planned: ${ex.plannedExercise} • Warm-up: ${ex.warmupSets || '—'} sets • Rest: ${ex.rest || '—'}</div>
+              <div class="meta">Warm-up: ${ex.warmupSets || '—'} sets • Rest: ${ex.rest || '—'}</div>
+              <div class="lastSetRow">
+                <span class="pill wrap">Last set: ${ex.technique || '—'}</span>
+              </div>
             </div>
+            <button class="iconBtn" data-action="sub" data-ex="${i}" aria-label="Swap / substitute">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path>
+              </svg>
+            </button>
           </div>
 
-          <div class="miniBtns" style="margin-top:10px">
-            <span class="pill"><strong>Last set</strong> ${ex.technique || '—'}</span>
-            <button class="miniBtn" data-action="sub" data-ex="${i}">Swap</button>
-          </div>
 
           <table class="setTable">
             <thead>
               <tr>
-                <th style="width:28px">Set</th>
-                <th style="width:90px">Target</th>
-                <th>Guidance</th>
-                <th style="width:100px">Weight</th>
-                <th style="width:80px">Reps</th>
+                <th style="width:36px">SET</th>
+                <th style="width:86px">TARGET</th>
+                <th style="width:70px">RPE</th>
+                <th style="width:110px">WEIGHT</th>
+                <th style="width:86px">REPS</th>
               </tr>
             </thead>
             <tbody>${setsRows}</tbody>
